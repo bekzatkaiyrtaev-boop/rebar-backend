@@ -8,15 +8,20 @@
 import { google } from 'googleapis';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-// В Vercel переносы строк в private_key хранятся как "\n" (текстом) — разворачиваем обратно.
-// Также на случай, если при копировании попали лишние кавычки по краям — срезаем их.
-let PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY || '';
-PRIVATE_KEY = PRIVATE_KEY.trim();
-if (PRIVATE_KEY.startsWith('"') && PRIVATE_KEY.endsWith('"')) {
-  PRIVATE_KEY = PRIVATE_KEY.slice(1, -1);
+
+// Вместо двух отдельных переменных (email + ключ) используем одну — с содержимым
+// всего JSON-файла service account целиком. JSON.parse сам корректно разворачивает
+// "\n" внутри строки в настоящие переносы, поэтому проблем с форматом ключа не возникает.
+let SERVICE_ACCOUNT_EMAIL = '';
+let PRIVATE_KEY = '';
+try {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '';
+  const creds = JSON.parse(raw);
+  SERVICE_ACCOUNT_EMAIL = creds.client_email;
+  PRIVATE_KEY = creds.private_key;
+} catch (e) {
+  // Переменная не задана или невалидный JSON — обработается ниже в handler
 }
-PRIVATE_KEY = PRIVATE_KEY.replace(/\\n/g, '\n');
 
 // Разрешённые имена листов — защита от произвольного чтения чужих диапазонов
 const ALLOWED_SHEETS = new Set([
