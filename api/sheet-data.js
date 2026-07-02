@@ -59,7 +59,9 @@ function rowsToObjects(rows) {
       if (raw === undefined || raw === '' || raw === '-') {
         obj[key] = null;
       } else {
-        const num = Number(String(raw).replace(',', '.'));
+        // Убираем пробелы-разделители тысяч (обычные и неразрывные), затем запятую → точку
+        const cleaned = String(raw).replace(/[\s\u00A0]/g, '').replace(',', '.');
+        const num = Number(cleaned);
         obj[key] = isNaN(num) ? raw : num;
       }
     });
