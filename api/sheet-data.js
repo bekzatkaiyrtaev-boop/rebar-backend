@@ -49,6 +49,13 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Проверка секретного ключа — отсекает прямые обращения к API мимо сайта
+  const APP_SECRET = process.env.APP_SECRET;
+  if (APP_SECRET && req.headers["x-app-key"] !== APP_SECRET) {
+    res.status(403).json({ error: "Доступ запрещён" });
+    return;
+  }
+
   try {
     const { book = "sortament", sheet } = req.query;
 
