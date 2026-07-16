@@ -3,14 +3,14 @@
 // Требует переменную окружения RESEND_API_KEY (Vercel → Settings → Environment Variables)
 // Пакет: npm install resend
 
-const { Resend } = require('resend');
+import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Разрешённый источник запросов — домен сайта справочника
 const ALLOWED_ORIGIN = 'https://esk-kz.vercel.app';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
       // Через reply_to при нажатии "Ответить" письмо уйдёт автору обращения напрямую.
       from: 'ЭСК — форма обратной связи <onboarding@resend.dev>',
       to: 'esk_kz@bk.ru',
-      reply_to: email,
+      replyTo: email,
       subject: `Сообщение с сайта ЭСК от ${name}`,
       text: `Имя: ${name}\nE-mail: ${email}\n\nСообщение:\n${message}`,
     });
@@ -55,4 +55,4 @@ module.exports = async function handler(req, res) {
     console.error('Ошибка отправки письма:', err);
     return res.status(500).json({ error: 'Не удалось отправить письмо' });
   }
-};
+}
