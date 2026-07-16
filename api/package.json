@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "googleapis": "^140.0.0"
+    "googleapis": "^140.0.0",
+    "resend": "^6.17.2"
   }
 }
