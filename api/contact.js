@@ -39,18 +39,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Слишком длинный текст' });
     }
 
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       // Технический адрес отправителя от Resend — домен esk-kz.vercel.app не верифицирован,
       // поэтому письмо формально уходит от onboarding@resend.dev.
       // Через reply_to при нажатии "Ответить" письмо уйдёт автору обращения напрямую.
       from: 'ЭСК — форма обратной связи <onboarding@resend.dev>',
-      to: 'esk_kz@bk.ru',
+      to: 'esk.bekzat@gmail.com',
       replyTo: email,
       subject: `Сообщение с сайта ЭСК от ${name}`,
       text: `Имя: ${name}\nE-mail: ${email}\n\nСообщение:\n${message}`,
     });
 
-    return res.status(200).json({ ok: true });
+    if (error) {
+      console.error('Resend вернул ошибку:', error);
+      return res.status(500).json({ error: error.message || 'Resend отклонил письмо' });
+    }
+
+    return res.status(200).json({ ok: true, id: data && data.id });
   } catch (err) {
     console.error('Ошибка отправки письма:', err);
     return res.status(500).json({ error: 'Не удалось отправить письмо' });
