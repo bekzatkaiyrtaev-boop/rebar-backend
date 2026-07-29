@@ -25,7 +25,18 @@ const METHOD_LABELS = {
   link: 'Ссылка на почту',
 };
 
-async function ensureHeader(sheets, spreadsheetId, sheetName, header) {
+async function ensureSheetAndHeader(sheets, spreadsheetId, sheetName, header) {
+  // Проверяем, есть ли такая вкладка в таблице вообще
+  const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
+  const exists = (meta.data.sheets || []).some(s => s.properties.title === sheetName);
+
+  if (!exists) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests: [{ addSheet: { properties: { title: sheetName } } }] },
+    });
+  }
+
   const readResult = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: `${sheetName}!A1:Z1`,
@@ -78,7 +89,7 @@ export default async function handler(req, res) {
     const timestampForUsers = `${dateStr} ${timeStr}`;
 
     // ── 1. Обновляем сводку в Users ──
-    await ensureHeader(sheets, spreadsheetId, USERS_SHEET, USERS_HEADER);
+    await ensureSheetAndHeader(sheets, spreadsheetId, USERS_SHEET, USERS_HEADER);
 
     const usersRead = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -121,7 +132,7 @@ export default async function handler(req, res) {
     }
 
     // ── 2. Пишем событие "Вход" в Log (для статистики по дням/методам) ──
-    await ensureHeader(sheets, spreadsheetId, LOG_SHEET, LOG_HEADER);
+    await ensureSheetAndHeader(sheets, spreadsheetId, LOG_SHEET, LOG_HEADER);
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: `${LOG_SHEET}!A:F`,
