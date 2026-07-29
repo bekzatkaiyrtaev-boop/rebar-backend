@@ -14,7 +14,17 @@ const ALLOWED_ORIGIN = 'https://esk-kz.vercel.app';
 const LOG_SHEET = 'Log';
 const LOG_HEADER = ['Дата', 'Время', 'Email', 'Тип', 'Метод', 'Страница'];
 
-async function ensureHeader(sheets, spreadsheetId, sheetName, header) {
+async function ensureSheetAndHeader(sheets, spreadsheetId, sheetName, header) {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
+  const exists = (meta.data.sheets || []).some(s => s.properties.title === sheetName);
+
+  if (!exists) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests: [{ addSheet: { properties: { title: sheetName } } }] },
+    });
+  }
+
   const readResult = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: `${sheetName}!A1:Z1`,
@@ -64,7 +74,7 @@ export default async function handler(req, res) {
     const dateStr = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Almaty' }); // YYYY-MM-DD
     const timeStr = now.toLocaleTimeString('ru-RU', { timeZone: 'Asia/Almaty' });
 
-    await ensureHeader(sheets, spreadsheetId, LOG_SHEET, LOG_HEADER);
+    await ensureSheetAndHeader(sheets, spreadsheetId, LOG_SHEET, LOG_HEADER);
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: `${LOG_SHEET}!A:F`,
