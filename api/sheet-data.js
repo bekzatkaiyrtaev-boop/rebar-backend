@@ -3,6 +3,7 @@
 // book: sortament (по умолчанию) | climat | materials
 // Конвенция листа: строка 5 — machine-readable ключи, строка 6 — подписи, данные с 7-й строки
 import { google } from "googleapis";
+import { checkRateLimit } from "./_rateLimit.js";
 // Соответствие параметра book и переменной окружения с ID таблицы
 const BOOK_ENV_MAP = {
   sortament: "GOOGLE_SHEET_ID",
@@ -36,6 +37,13 @@ export default async function handler(req, res) {
   }
   if (req.method !== "GET") {
     res.status(405).json({ error: "Метод не поддерживается, используйте GET" });
+    return;
+  }
+  // Rate limit — не даёт скриптом перебрать весь датасет по одному IP
+  const rl = checkRateLimit(req, { limit: 60, windowMs: 60_000 });
+  if (!rl.ok) {
+    res.setHeader("Retry-After", String(rl.retryAfter));
+    res.status(429).json({ error: "Слишком много запросов, попробуйте позже" });
     return;
   }
   // Проверка секретного ключа — отсекает прямые обращения к API мимо сайта
