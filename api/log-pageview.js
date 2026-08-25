@@ -9,8 +9,8 @@
 //   GOOGLE_SERVICE_ACCOUNT_JSON — уже используется другими калькуляторами
 //   GOOGLE_USERS_SHEET_ID       — ID таблицы "ЭСК-пользователи"
 import { google } from 'googleapis';
+import { applyCors } from './_cors.js';
 
-const ALLOWED_ORIGIN = 'https://esk-kz.vercel.app';
 const LOG_SHEET = 'Log';
 const LOG_HEADER = ['Дата', 'Время', 'Email', 'Тип', 'Метод', 'Страница'];
 
@@ -41,9 +41,7 @@ async function ensureSheetAndHeader(sheets, spreadsheetId, sheetName, header) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();

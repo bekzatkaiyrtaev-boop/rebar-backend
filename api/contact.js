@@ -4,17 +4,12 @@
 // Пакет: npm install resend
 
 import { Resend } from 'resend';
+import { applyCors } from './_cors.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Разрешённый источник запросов — домен сайта справочника
-const ALLOWED_ORIGIN = 'https://esk-kz.vercel.app';
-
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
