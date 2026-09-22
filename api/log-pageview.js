@@ -1,9 +1,12 @@
 // api/log-pageview.js
-// Эндпоинт учёта просмотров страниц-калькуляторов справочника ЭСК.
+// Эндпоинт учёта просмотров страниц-калькуляторов ЭСК и PSD PRO.
 // Вызывается с фронта (site-header.js) при каждом открытии страницы
 // уже вошедшим пользователем. Пишет строку в лист "Log" той же таблицы,
-// что и log-user.js: Дата | Время | Email | Тип | Метод | Страница
+// что и log-user.js: Дата | Время | Email | Тип | Метод | Страница | Сайт
 // (для просмотра Тип='Просмотр', Метод пустой, Страница заполнена).
+//
+// Поле site в теле запроса — "ЭСК" или "PSD PRO" (по умолчанию "ЭСК" для
+// обратной совместимости со старым фронтендом, который его ещё не шлёт).
 //
 // Требует переменные окружения:
 //   GOOGLE_SERVICE_ACCOUNT_JSON — уже используется другими калькуляторами
@@ -12,7 +15,7 @@ import { google } from 'googleapis';
 import { applyCors } from './_cors.js';
 
 const LOG_SHEET = 'Log';
-const LOG_HEADER = ['Дата', 'Время', 'Email', 'Тип', 'Метод', 'Страница'];
+const LOG_HEADER = ['Дата', 'Время', 'Email', 'Тип', 'Метод', 'Страница', 'Сайт'];
 
 async function ensureSheetAndHeader(sheets, spreadsheetId, sheetName, header) {
   const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
@@ -51,12 +54,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, page } = req.body || {};
+    const { email, page, site } = req.body || {};
     if (!email || !page) {
       return res.status(400).json({ error: 'Не переданы email или страница' });
     }
     const emailNormalized = String(email).trim().toLowerCase();
     const pageLabel = String(page).trim();
+    const siteLabel = site || 'ЭСК';
 
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
     const auth = new google.auth.JWT(
@@ -75,10 +79,10 @@ export default async function handler(req, res) {
     await ensureSheetAndHeader(sheets, spreadsheetId, LOG_SHEET, LOG_HEADER);
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${LOG_SHEET}!A:F`,
+      range: `${LOG_SHEET}!A:G`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[dateStr, timeStr, emailNormalized, 'Просмотр', '', pageLabel]],
+        values: [[dateStr, timeStr, emailNormalized, 'Просмотр', '', pageLabel, siteLabel]],
       },
     });
 

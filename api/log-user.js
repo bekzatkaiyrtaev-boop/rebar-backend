@@ -1,11 +1,16 @@
 // api/log-user.js
-// Эндпоинт учёта пользователей, вошедших на сайте ЭСК (Firebase Auth:
-// Google / email+пароль / ссылка на почту).
+// Эндпоинт учёта пользователей, вошедших на сайте ЭСК или PSD PRO
+// (Firebase Auth: Google / email+пароль / ссылка на почту — у каждого
+// сайта свой отдельный проект Firebase, эндпоинт общий).
 //
 // Пишет в ДВА листа таблицы "ЭСК-пользователи":
 //   Users — одна строка на email: Email | Первая авторизация | Последний вход | Входов | Имя
-//   Log   — сырой лог событий для статистики: Дата | Время | Email | Тип | Метод | Страница
+//           (общий для обоих сайтов — один человек может заходить и туда, и туда)
+//   Log   — сырой лог событий для статистики: Дата | Время | Email | Тип | Метод | Страница | Сайт
 //           (это событие "Вход" — Метод заполнен, Страница пустая)
+//
+// Поле site в теле запроса — "ЭСК" или "PSD PRO" (по умолчанию "ЭСК" для
+// обратной совместимости со старым фронтендом, который его ещё не шлёт).
 //
 // Требует переменные окружения:
 //   GOOGLE_SERVICE_ACCOUNT_JSON — уже используется другими калькуляторами
@@ -16,7 +21,7 @@ import { applyCors } from './_cors.js';
 const USERS_SHEET = 'Users';
 const LOG_SHEET = 'Log';
 const USERS_HEADER = ['Email', 'Первая авторизация', 'Последний вход', 'Входов', 'Имя'];
-const LOG_HEADER = ['Дата', 'Время', 'Email', 'Тип', 'Метод', 'Страница'];
+const LOG_HEADER = ['Дата', 'Время', 'Email', 'Тип', 'Метод', 'Страница', 'Сайт'];
 
 // Читаемые подписи для способа входа (то, что придёт с фронта в поле method)
 const METHOD_LABELS = {
@@ -63,13 +68,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, email, method } = req.body || {};
+    const { name, email, method, site } = req.body || {};
     if (!email) {
       return res.status(400).json({ error: 'Не передан email' });
     }
     const emailNormalized = String(email).trim().toLowerCase();
     const displayName = name || emailNormalized.split('@')[0];
     const methodLabel = METHOD_LABELS[method] || (method || 'не указан');
+    const siteLabel = site || 'ЭСК';
 
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
     const auth = new google.auth.JWT(
@@ -129,14 +135,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── 2. Пишем событие "Вход" в Log (для статистики по дням/методам) ──
+    // ── 2. Пишем событие "Вход" в Log (для статистики по дням/методам/сайтам) ──
     await ensureSheetAndHeader(sheets, spreadsheetId, LOG_SHEET, LOG_HEADER);
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${LOG_SHEET}!A:F`,
+      range: `${LOG_SHEET}!A:G`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[dateStr, timeStr, emailNormalized, 'Вход', methodLabel, '']],
+        values: [[dateStr, timeStr, emailNormalized, 'Вход', methodLabel, '', siteLabel]],
       },
     });
 
