@@ -1,5 +1,5 @@
 // api/contact.js
-// Эндпоинт формы обратной связи со страницы "Об авторе"
+// Эндпоинт формы обратной связи (страницы "Связаться" и "Об авторе" на psdpro.kz)
 // Требует переменную окружения RESEND_API_KEY (Vercel → Settings → Environment Variables)
 // Пакет: npm install resend
 
@@ -35,11 +35,8 @@ export default async function handler(req, res) {
     }
 
     // Получатель и отправитель настраиваются через переменные окружения Vercel.
-    // CONTACT_TO — куда приходят обращения (по умолчанию прежний Gmail).
-    // CONTACT_FROM — адрес отправителя; на домен psdpro.kz переключать только после
-    // подтверждения домена в Resend, иначе Resend отклонит письма.
-    // Пока домен не подтверждён, onboarding@resend.dev умеет слать только на почту
-    // владельца аккаунта Resend, поэтому CONTACT_TO менять рано.
+    // CONTACT_TO — куда приходят обращения (по умолчанию прежний Gmail, пока переменная не задана).
+    // CONTACT_FROM — адрес отправителя на подтверждённом в Resend домене send.psdpro.kz.
     const to = process.env.CONTACT_TO || 'esk.bekzat@gmail.com';
     const from = process.env.CONTACT_FROM || 'PSD PRO — форма обратной связи <onboarding@resend.dev>';
     const topicLine = topic ? `Тема: ${topic}\n` : '';
