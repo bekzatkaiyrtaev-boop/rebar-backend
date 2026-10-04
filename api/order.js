@@ -67,14 +67,17 @@ export default async function handler(req, res) {
 
     const resendAttachments = files.map((f) => ({ filename: f.filename, content: f.contentBase64 }));
 
+    // Получатель и отправитель — из переменных окружения Vercel (общие с api/contact.js).
+    // Пока CONTACT_TO/CONTACT_FROM не заданы, работает прежняя схема через onboarding@resend.dev.
+    const to = process.env.CONTACT_TO || 'esk.bekzat@gmail.com';
+    const from = process.env.CONTACT_FROM || 'PSD PRO — заявка на расчёт <onboarding@resend.dev>';
+
     const { data, error } = await resend.emails.send({
-      // Технический адрес отправителя от Resend — домен esk-kz.vercel.app не верифицирован,
-      // поэтому письмо формально уходит от onboarding@resend.dev.
       // Через reply_to при нажатии "Ответить" письмо уйдёт заказчику напрямую.
-      from: 'ЭСК — заявка на расчёт <onboarding@resend.dev>',
-      to: 'esk.bekzat@gmail.com',
+      from,
+      to,
       replyTo: email,
-      subject: `Заявка на расчёт/проект от ${name}`,
+      subject: `[PSD PRO] Заявка на расчёт/проект от ${name}`,
       text:
         `Имя: ${name}\n` +
         `E-mail: ${email}\n` +

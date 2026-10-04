@@ -1,5 +1,5 @@
 // api/contact.js
-// Эндпоинт формы обратной связи со страницы "Об авторе"
+// Эндпоинт формы обратной связи (страницы "Связаться" и "Об авторе" на psdpro.kz)
 // Требует переменную окружения RESEND_API_KEY (Vercel → Settings → Environment Variables)
 // Пакет: npm install resend
 
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, email, message } = req.body || {};
+    const { name, email, message, topic } = req.body || {};
 
     // Базовая валидация
     if (!name || !email || !message) {
@@ -30,19 +30,24 @@ export default async function handler(req, res) {
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Некорректный e-mail' });
     }
-    if (name.length > 200 || message.length > 5000) {
+    if (name.length > 200 || message.length > 5000 || (topic && String(topic).length > 200)) {
       return res.status(400).json({ error: 'Слишком длинный текст' });
     }
 
+    // Получатель и отправитель настраиваются через переменные окружения Vercel.
+    // CONTACT_TO — куда приходят обращения (по умолчанию прежний Gmail, пока переменная не задана).
+    // CONTACT_FROM — адрес отправителя на подтверждённом в Resend домене send.psdpro.kz.
+    const to = process.env.CONTACT_TO || 'esk.bekzat@gmail.com';
+    const from = process.env.CONTACT_FROM || 'PSD PRO — форма обратной связи <onboarding@resend.dev>';
+    const topicLine = topic ? `Тема: ${topic}\n` : '';
+
     const { data, error } = await resend.emails.send({
-      // Технический адрес отправителя от Resend — домен esk-kz.vercel.app не верифицирован,
-      // поэтому письмо формально уходит от onboarding@resend.dev.
       // Через reply_to при нажатии "Ответить" письмо уйдёт автору обращения напрямую.
-      from: 'ЭСК — форма обратной связи <onboarding@resend.dev>',
-      to: 'esk.bekzat@gmail.com',
+      from,
+      to,
       replyTo: email,
-      subject: `Сообщение с сайта ЭСК от ${name}`,
-      text: `Имя: ${name}\nE-mail: ${email}\n\nСообщение:\n${message}`,
+      subject: `[PSD PRO] ${topic ? topic + ' — ' : ''}${name}`,
+      text: `${topicLine}Имя: ${name}\nE-mail: ${email}\n\nСообщение:\n${message}`,
     });
 
     if (error) {
