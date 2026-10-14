@@ -1,6 +1,6 @@
 // api/sheet-data.js
 // Endpoint: GET /api/sheet-data?book=КНИГА&sheet=ИМЯ_ЛИСТА
-// book: sortament (по умолчанию) | climat | materials
+// book: sortament (по умолчанию) | climat | materials | agsk
 // Конвенция листа: строка 5 — machine-readable ключи, строка 6 — подписи, данные с 7-й строки
 import { google } from "googleapis";
 import { checkRateLimit } from "./_rateLimit.js";
@@ -9,6 +9,7 @@ const BOOK_ENV_MAP = {
   sortament: "GOOGLE_SHEET_ID",
   climat: "GOOGLE_CLIMAT_SHEET_ID",
   materials: "GOOGLE_MATERIALS_SHEET_ID",
+  agsk: "GOOGLE_AGSK_SHEET_ID",
 };
 // Кэшируем авторизованный клиент между вызовами (в рамках "тёплого" инстанса Vercel)
 let cachedSheetsClient = null;
