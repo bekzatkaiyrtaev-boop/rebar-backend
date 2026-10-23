@@ -43,6 +43,10 @@ export default async function handler(req, res) {
   // Rate limit — не даёт скриптом перебрать весь датасет по одному IP
   const rl = checkRateLimit(req, { limit: 60, windowMs: 60_000 });
   if (!rl.ok) {
+    // Срабатывание лимита — попадает в логи функции Vercel, чтобы была видна
+    // попытка массового выкачивания данных (вручную смотреть при подозрении).
+    const ip = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+    console.warn(`sheet-data: rate limit exceeded, ip=${ip}, book=${req.query.book}, sheet=${req.query.sheet}`);
     res.setHeader("Retry-After", String(rl.retryAfter));
     res.status(429).json({ error: "Слишком много запросов, попробуйте позже" });
     return;
