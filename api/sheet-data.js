@@ -4,6 +4,7 @@
 // Конвенция листа: строка 5 — machine-readable ключи, строка 6 — подписи, данные с 7-й строки
 import { google } from "googleapis";
 import { checkRateLimit } from "./_rateLimit.js";
+import { applyCors, isAllowedOrigin } from "./_cors.js";
 // Соответствие параметра book и переменной окружения с ID таблицы
 const BOOK_ENV_MAP = {
   sortament: "GOOGLE_SHEET_ID",
@@ -28,10 +29,9 @@ async function getSheetsClient() {
   return cachedSheetsClient;
 }
 export default async function handler(req, res) {
-  // CORS — разрешаем запросы с фронтенда на Vercel
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-app-key");
+  // CORS — раньше тут стоял "*" (любой сайт мог читать ответ прямо из браузера);
+  // теперь общий allowlist из _cors.js, тот же, что у остальных эндпоинтов бэкенда.
+  applyCors(req, res);
   if (req.method === "OPTIONS") {
     res.status(200).end();
     return;
@@ -54,6 +54,14 @@ export default async function handler(req, res) {
   // Проверка секретного ключа — отсекает прямые обращения к API мимо сайта
   const APP_SECRET = process.env.APP_SECRET;
   if (APP_SECRET && req.headers["x-app-key"] !== APP_SECRET) {
+    res.status(403).json({ error: "Доступ запрещён" });
+    return;
+  }
+  // Проверка Origin/Referer — ключ x-app-key виден в коде страницы (сайт статический),
+  // поэтому сам по себе он не останавливает прямой curl/скрипт с подсмотренным ключом.
+  // CORS-заголовки выше это тоже не блокируют (CORS действует только в браузере).
+  // Эта проверка — доп. барьер именно против таких запросов "мимо сайта".
+  if (!isAllowedOrigin(req)) {
     res.status(403).json({ error: "Доступ запрещён" });
     return;
   }
