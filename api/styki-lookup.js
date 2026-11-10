@@ -45,13 +45,16 @@ async function getSheetsClient() {
   return cachedSheetsClient;
 }
 
-// Конвенция обоих листов этой таблицы: строка 1 — machine-readable ключи,
-// данные со строки 2 (проще, чем row5/row6/row7 у sortament/climat — эта
-// таблица задумана отдельно и сразу под этот эндпоинт).
+// Конвенция обоих листов этой таблицы: строка с ключами начинается с "id",
+// данные — сразу после неё. Число пустых строк перед заголовком не
+// фиксировано (в "Стыки" их 4, в "Схемы" — 6 на момент написания), поэтому
+// ищем строку-заголовок по первой ячейке, а не считаем её номер заранее.
 function rowsToRecords(rows) {
-  const keys = rows[0] || [];
+  const headerIdx = rows.findIndex((row) => row && row[0] === "id");
+  if (headerIdx === -1) return [];
+  const keys = rows[headerIdx];
   return rows
-    .slice(1)
+    .slice(headerIdx + 1)
     .filter((row) => row.some((cell) => cell !== undefined && cell !== ""))
     .map((row) => {
       const record = {};
