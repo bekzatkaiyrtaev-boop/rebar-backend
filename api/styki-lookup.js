@@ -17,7 +17,7 @@
 // другие книги (GOOGLE_SERVICE_ACCOUNT_JSON).
 import { google } from "googleapis";
 import { checkRateLimit } from "./_rateLimit.js";
-import { applyCors } from "./_cors.js";
+import { applyCors, isAllowedOrigin } from "./_cors.js";
 import { verifyFirebaseToken } from "./_firebaseAuth.js";
 
 const SPREADSHEET_ID = process.env.GOOGLE_STYKI_SHEET_ID;
@@ -105,6 +105,11 @@ export default async function handler(req, res) {
   if (!rl.ok) {
     res.setHeader("Retry-After", String(rl.retryAfter));
     res.status(429).json({ error: "Слишком много запросов, попробуйте позже" });
+    return;
+  }
+
+  if (!isAllowedOrigin(req)) {
+    res.status(403).json({ error: "Доступ запрещён" });
     return;
   }
 
