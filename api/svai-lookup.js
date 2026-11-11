@@ -116,8 +116,10 @@ function parseMeshes(rows) {
       barQty: num(r[4]),
       massKg: num(r[5]),
       stepsMm: [r[6], r[7], r[8], r[9], r[10]].map(num).filter((v) => v !== null),
-      sourcePage: num(r[15]),
-      printedPage: num(r[16]),
+      // "Стр. серии" = printedPage (номер по серии), "Стр. файла" = sourcePage (скан) —
+      // так же называлось в исходном JSON, сверено на "П1"/"С1".
+      printedPage: num(r[15]),
+      sourcePage: num(r[16]),
     }));
 }
 function parseLoops(rows) {
@@ -132,8 +134,11 @@ function parseLoops(rows) {
       massKg: num(r[4]),
       barMassKg: num(r[5]),
       document: str(r[6]),
-      sourcePage: num(r[7]),
-      printedPage: num(r[8]),
+      // "Стр. серии" = printedPage, "Стр. файла" = sourcePage — printedPage
+      // печатается прямо в карточке ("Чертёж ..., стр. ${l.printedPage}"),
+      // перепутанные местами значения сверены и исправлены на "П1".
+      printedPage: num(r[7]),
+      sourcePage: num(r[8]),
     }));
 }
 
