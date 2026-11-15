@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     return;
   }
   try {
-    const { book = "sortament", sheet } = req.query;
+    const { book = "sortament", sheet, row, rowKey, fields } = req.query;
     if (!sheet) {
       res.status(400).json({ error: "Не указан параметр sheet" });
       return;
@@ -93,15 +93,35 @@ export default async function handler(req, res) {
     const keys = rows[4] || [];
     const labels = rows[5] || [];
     const dataRows = rows.slice(6);
-    const records = dataRows
-      .filter((row) => row.some((cell) => cell !== undefined && cell !== ""))
-      .map((row) => {
+    let records = dataRows
+      .filter((r) => r.some((cell) => cell !== undefined && cell !== ""))
+      .map((r) => {
         const record = {};
         keys.forEach((key, i) => {
-          if (key) record[key] = row[i] !== undefined ? row[i] : "";
+          if (key) record[key] = r[i] !== undefined ? r[i] : "";
         });
         return record;
       });
+    // row/rowKey — точечная выборка одной записи по ключу (по умолчанию
+    // 'name') вместо всего листа целиком. Нужно только тем страницам,
+    // которые явно просят (не влияет на уже существующие запросы без
+    // этих параметров) — снижает объём данных, который получает браузер
+    // за один запрос (вместо "лист целиком" можно спросить один город/
+    // один профиль).
+    if (row !== undefined) {
+      const key = rowKey || "name";
+      records = records.filter((r) => r[key] === row);
+    }
+    // fields — проекция только перечисленных колонок (через запятую),
+    // например fields=name,region для лёгкого списка без самих данных.
+    if (fields) {
+      const wanted = fields.split(",").map((s) => s.trim()).filter(Boolean);
+      records = records.map((r) => {
+        const out = {};
+        wanted.forEach((f) => { if (f in r) out[f] = r[f]; });
+        return out;
+      });
+    }
     res.status(200).json({
       book,
       sheet,
